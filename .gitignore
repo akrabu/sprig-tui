@@ -16,8 +16,9 @@ outline.opml
 /.sprig-backups/
 /.outliner-test-config/
 /.sprig-test-config/
-*.opml.br
-*.opml.br.sha256
+*.opml.gz
+*.opml.gz.sha256
+*.opml.*
 *.tmp
 *.log
 .ruff_cache/

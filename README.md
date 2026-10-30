@@ -6,8 +6,11 @@ The Python distribution and GitHub repository are named **sprig-tui**.
 
 ## Install and run
 
-Requires Python 3.10 or newer, curses, and a UTF-8 terminal on Linux or macOS.
-Brotli is installed as a dependency for compressed backups.
+Requires Python 3.11 or newer, curses, and a UTF-8 terminal on Linux or macOS.
+Sprig uses only the Python standard library; no runtime packages are required.
+
+Run directly from a checkout with `python3 sprig.py my-notes.opml`.
+To install the `sprig` command in a virtual environment:
 
 ```bash
 git clone https://github.com/akrabu/sprig-tui.git
@@ -36,7 +39,7 @@ An untouched new document is not written merely by opening or quitting it.
 | Mechanism | Default location | Behavior |
 | --- | --- | --- |
 | Autosave snapshots | `~/.config/sprig-tui/autosave/` | Uncompressed OPML, every 60 seconds while edits are pending; keeps 20 versions per source file. |
-| Full backups | `~/.config/sprig-tui/backup/` | Brotli snapshots on manual save and saving on exit/switch; keeps 20 versions per source file. |
+| Full backups | `~/.config/sprig-tui/backup/` | Gzip snapshots on manual save and saving on exit/switch; keeps 20 versions per source file. |
 | Crash checkpoints | `~/.config/sprig-tui/recovery/` | Uncompressed checksummed recovery records after idle edits, targeting two-second intervals during continuous editing. |
 
 Choose **File → Autosave and backup settings** to change either directory,
@@ -54,7 +57,7 @@ sprig --no-save-on-exit notes.opml
 sprig --no-autosave notes.opml
 ```
 
-Full backups use `<original stem>_YYYY-MM-DD_HHMMSS.opml.br`. Autosave snapshots
+Full backups use `<original stem>_YYYY-MM-DD_HHMMSS.opml.gz`. Autosave snapshots
 use the same naming pattern ending in `.opml`. Both live in per-source
 subdirectories containing a path hash, so two `notes.opml` files keep separate
 histories. Identical consecutive snapshots are reused. Same-second saves use
@@ -62,6 +65,8 @@ successive available timestamps. Each snapshot has a `.sha256` sidecar and is
 verified before old versions are rotated. Full backups retain the previous
 bytes before replacement and the newly saved document; a `.opml.bak` beside the
 source also retains the latest previous bytes.
+Existing snapshots in other formats are retained; rotation manages the current
+format without removing unrelated archive files.
 
 **File → Backups and autosaves** lists snapshots for the open document. Select
 one and confirm to restore it into an unsaved buffer; Ctrl+S commits it.
@@ -79,6 +84,70 @@ conflict preserves the external file. Crash recovery still operates when timed
 autosave snapshots are disabled. A sudden power loss can lose edits since the
 last completed checkpoint.
 
+## Configuration and debug logs
+
+Sprig creates **`~/.config/sprig-tui/config.toml`** on first launch. Edit it and
+choose **File → Reload config**, or restart Sprig. Validate it from the shell with
+`sprig --check-config`. File-menu preference changes update this same file while
+preserving comments and custom bindings. Invalid configurations are preserved;
+reload keeps the previous working settings and displays the error.
+
+```toml
+version = 1
+
+[autosave]
+enabled = true
+interval_seconds = 60
+keep = 20
+directory = "~/.config/sprig-tui/autosave"
+
+[backup]
+enabled = true
+keep = 20
+directory = "~/.config/sprig-tui/backup"
+
+[files]
+save_on_exit = true
+
+[search]
+scope = "Whole file"
+
+[debug]
+enabled = false
+path = "~/.config/sprig-tui/debug.log"
+
+[keys]
+collapse = ["ctrl+,", "ctrl+<", "ctrl+shift+,", "ctrl+up"]
+expand = ["ctrl+.", "ctrl+>", "ctrl+shift+.", "ctrl+down"]
+toggle_fold = ["f9", "ctrl+space"]
+```
+
+The generated file lists all available command bindings. Each command accepts a
+string or an array of key names; `[]` disables it. Replacing a command's list
+removes its previous bindings. Key conflicts and unknown commands are rejected.
+Menus, the footer, and F1 help display the active bindings. Dialog navigation and
+text-editing keys retain their usual meanings. CLI options override the file for
+one run; changing that preference through the menu takes precedence.
+
+Full backups are ordinary OPML compressed with Python's built-in **gzip**;
+autosave snapshots remain plain OPML. Backup and autosave directories can be
+absolute or relative to the active document. A relative debug-log path is
+resolved inside the config directory. Its filename is configurable.
+
+Debug logging is **off by default**. Enable `[debug].enabled` and reload config to
+record terminal key sequences, mapped commands, editing state, timings, and error
+stack locations. Typed text, pasted text, search queries, exception messages, and
+outline contents are redacted. Logs use private permissions, rotate at about
+1 MiB, and retain three older files. Logging refuses unrelated existing files and
+cannot replace the open document or configuration. A logging failure leaves the
+editor running. You can share `debug.log` when reporting a problem.
+
+Some terminals or desktop environments intercept Ctrl+arrow keys. Select a
+bullet with children and use Ctrl+, / Ctrl+., F9, or the Node menu. The app requests
+extended key reporting for supporting terminals. If a shortcut produces ordinary
+punctuation, choose another binding in `[keys]`; no application can recover a
+modifier that the terminal does not send.
+
 ## Keys and navigation
 
 | Action | Shortcut | Alternative |
@@ -89,7 +158,7 @@ last completed checkpoint.
 | Zoom in / out | Alt+. / Alt+, | F7 / F8; click bullet / breadcrumbs |
 | Back / forward | Alt+Left / Alt+Right | Alt+B / Alt+F; Navigate menu |
 | Return Home | F12 | Click Home |
-| Collapse / expand current | Ctrl+Up / Ctrl+Down | Click triangle |
+| Collapse / expand current | Ctrl+, / Ctrl+. | Ctrl+< / Ctrl+>; Ctrl+Up / Down; Node menu |
 | Toggle collapse | Ctrl+Space | F9 |
 | Collapse / expand all below | Ctrl+Alt+Up / Down | Node menu |
 | Move branch among siblings | Alt+Shift+Up / Down | Alt+Up / Down |
@@ -217,12 +286,12 @@ with one body and a text attribute on every outline. DTDs and mixed XML text in
 outline containers are rejected. Documents and decompressed backups are limited
 to 64 MiB. Sprig has no fixed outline-depth limit.
 
-Private state uses `~/.config/sprig-tui/`: `settings.json` stores preferences and
+Private state uses `~/.config/sprig-tui/`: `config.toml` stores preferences and key mappings;
 `files/<path-hash>.json` stores stars, folding, zoom, cursor, filters, and completed
 visibility. `XDG_CONFIG_HOME` and `SPRIG_CONFIG_DIR` are respected. Existing
-`outliner-tui` settings and stars are read as a migration fallback; saving writes
-the new Sprig directory. The legacy files are retained. `OUTLINER_CONFIG_DIR`
-remains an environment-variable alias.
+`settings.json` preferences and `outliner-tui` stars/settings migrate to Sprig's
+`config.toml` and private state files. The legacy files are retained.
+`OUTLINER_CONFIG_DIR` remains an environment-variable alias.
 
 Metadata uses private file permissions and atomic writes. Corrupt or newer
 formats are preserved and reported. Conflicting writes from another session are
@@ -237,7 +306,7 @@ ideas are in `todo.txt`.
 ## Development
 
 ```bash
-.venv/bin/python -B -m unittest discover -v
+.venv/bin/python -S -B -m unittest discover -v
 sprig --check examples/demo.opml
 ```
 
@@ -247,5 +316,7 @@ Coverage includes OPML round trips, imports/exports, stars, search, labels,
 recovery, locking, concurrent edits, write failures, retention, navigation, and
 real curses sessions in pseudo-terminals. Supplied private exports are excluded
 from the repository. See `REVIEW.md` for the data-safety review.
+The `-S` check disables site packages, including in the terminal subprocesses,
+so it also verifies that Sprig runs using only the standard library.
 
 Licensed under MIT.

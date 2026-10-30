@@ -10,6 +10,8 @@ from .model import Editor, Node
 from .opml import OpmlFile
 from .config import config_directory, legacy_directory
 from .storage import CommittedWriteError, digest, file_lock, read_limited
+from . import preferences
+from .keymap import KeyMap
 
 
 def node_hash(node: Node) -> str:
@@ -56,7 +58,7 @@ def validate_data(data: dict, *, settings: bool = False) -> None:
     if (not isinstance(data, dict) or type(data.get("version", 1)) is not int
             or data.get("version", 1) != 1):
         raise ValueError("unsupported configuration format/version")
-    strings = ("search_scope", "last_directory", "backup_directory", "autosave_directory") if settings else ("file", "selected", "zoom", "field")
+    strings = ("search_scope", "last_directory", "backup_directory", "autosave_directory", "debug_path") if settings else ("file", "selected", "zoom", "field")
     for key in strings:
         if key in data and not isinstance(data[key], str):
             raise ValueError(f"invalid {key}")
@@ -68,9 +70,17 @@ def validate_data(data: dict, *, settings: bool = False) -> None:
             value = data["autosave_interval"]
             if type(value) not in (int, float) or not math.isfinite(value) or value < 0.1:
                 raise ValueError("invalid autosave_interval")
-        for key in ("autosave_enabled", "backups_enabled", "save_on_exit"):
+        for key in ("autosave_enabled", "backups_enabled", "save_on_exit", "debug_enabled"):
             if key in data and type(data[key]) is not bool:
                 raise ValueError(f"invalid {key}")
+        if data.get("search_scope", "Whole file") not in ("Current branch", "Whole file", "Global"):
+            raise ValueError("invalid search_scope")
+        for key in ("backup_directory", "autosave_directory", "last_directory", "debug_path"):
+            if any(c in data.get(key, "") for c in "\x00\r\n"):
+                raise ValueError(f"invalid {key}")
+        if "debug_path" in data and not data["debug_path"].strip():
+            raise ValueError("debug_path must include a filename")
+        KeyMap(data.get("keymap", {}))
         return
     if data.get("field", "text") not in ("text", "_note"):
         raise ValueError("invalid field")
@@ -101,7 +111,9 @@ class StateStore:
         self.legacy = None if directory else legacy_directory()
         self.blocked: dict[Path, str] = {}
         self.fingerprints: dict[Path, str | None] = {}
-        self.settings = self.read(self.directory / "settings.json")
+        self.config_path = self.directory / "config.toml"
+        self.settings = preferences.defaults(self.directory)
+        self.reload_settings()
         self.baseline: dict[str, dict] = {}
         self.unresolved: list[dict] = []
 
@@ -133,20 +145,26 @@ class StateStore:
     def write(self, path: Path, data: dict) -> None:
         if path not in self.fingerprints:
             self.read(path)
+        validate_data(data, settings=path.name == "settings.json")
+        content = (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode()
+        self.write_bytes(path, content)
+
+    def write_bytes(self, path: Path, content: bytes) -> None:
         if path in self.blocked:
             raise OSError(f"Settings preserved without changes: {path}: {self.blocked[path]}")
         path.parent.mkdir(parents=True, exist_ok=True)
-        validate_data(data, settings=path.name == "settings.json")
-        content = (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode()
         with file_lock(path):
             def verify():
                 try:
-                    current = digest(read_limited(path))
+                    latest = read_limited(path)
                 except FileNotFoundError:
-                    current = None
+                    latest = None
+                current = digest(latest)
                 if current != self.fingerprints[path]:
                     raise OSError(f"Preferences changed in another session: {path.name}; existing file preserved")
-            verify()
+                return latest
+            if verify() == content:
+                return
             try:
                 OpmlFile._atomic(path, content, before_replace=verify)
             except CommittedWriteError:
@@ -155,7 +173,55 @@ class StateStore:
             self.fingerprints[path] = digest(content)
 
     def save_settings(self) -> None:
-        self.write(self.directory / "settings.json", {"version": 1, **self.settings})
+        validate_data(self.settings, settings=True)
+        path = self.config_path
+        if path in self.blocked:
+            raise OSError(f"Config preserved: {self.blocked[path]}")
+        try:
+            previous = read_limited(path)
+        except FileNotFoundError:
+            previous = None
+        if digest(previous) != self.fingerprints.get(path):
+            raise OSError("Config changed in another session or editor; reload config.toml first")
+        content = (preferences.encode(self.settings) if previous is None else
+                   preferences.update(previous, self.settings, self.directory))
+        if content != previous:
+            self.write_bytes(path, content)
+
+    def reload_settings(self) -> bool:
+        path = self.config_path
+        previous = self.settings
+        try:
+            try:
+                content = read_limited(path)
+            except FileNotFoundError:
+                self.fingerprints[path] = None
+                legacy_path = self.directory / "settings.json"
+                legacy = self.read(legacy_path)
+                if legacy_path in self.blocked:
+                    raise ValueError("Legacy settings preserved: " + self.blocked[legacy_path])
+                values = {**preferences.defaults(self.directory), **legacy}
+                validate_data(values, settings=True)
+                self.blocked.pop(path, None)
+                self.settings = values
+                try:
+                    self.save_settings()
+                except (OSError, ValueError) as error:
+                    # A failed migration write must not discard valid preferences,
+                    # particularly manual-save mode or a chosen backup directory.
+                    self.blocked[path] = str(error)
+                    return False
+                return True
+            values = preferences.decode(content, self.directory)
+            validate_data(values, settings=True)
+            self.fingerprints[path] = digest(content)
+            self.blocked.pop(path, None)
+            self.settings = values
+            return True
+        except (OSError, ValueError, RecursionError) as error:
+            self.blocked[path] = str(error)
+            self.settings = previous
+            return False
 
     def bind(self, source: OpmlFile, editor: Editor, data: dict | None = None) -> None:
         data = self.read(self.file_path(source.path)) if data is None else data

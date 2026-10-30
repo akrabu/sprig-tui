@@ -16,14 +16,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--autosave-interval", "--autosave-delay", dest="autosave_interval", type=float, metavar="SECONDS",
                         help="snapshot interval (default: 60 seconds, or remembered preference)")
     parser.add_argument("--autosave-dir", metavar="DIRECTORY", help="uncompressed snapshot directory")
-    parser.add_argument("--backup-dir", metavar="DIRECTORY", help="Brotli backup directory")
+    parser.add_argument("--backup-dir", metavar="DIRECTORY", help="gzip OPML backup directory")
     parser.add_argument("--backup-count", type=int, metavar="COUNT", help="number of full backups to retain per file (default: 20)")
     parser.add_argument("--autosave-count", type=int, metavar="COUNT", help="number of autosave snapshots to retain per file (default: 20)")
-    parser.add_argument("--no-backups", action="store_true", help="disable Brotli backups on save")
+    parser.add_argument("--no-backups", action="store_true", help="disable full OPML backups on save")
     parser.add_argument("--no-save-on-exit", action="store_true", help="offer Save / Discard / Cancel before closing unsaved files")
     parser.add_argument("--check", action="store_true", help="validate an existing OPML file and show counts without opening the TUI")
+    parser.add_argument("--check-config", action="store_true", help="validate config.toml without opening the TUI")
     parser.add_argument("--version", action="version", version=f"sprig {__version__}")
     args = parser.parse_args(argv)
+    if sys.version_info < (3, 11):
+        parser.error("Sprig requires Python 3.11 or newer")
     if args.autosave_interval is not None and (not math.isfinite(args.autosave_interval) or args.autosave_interval < 0.1):
         parser.error("--autosave-interval must be a finite number of at least 0.1 seconds")
     for name in ("backup_count", "autosave_count"):
@@ -31,6 +34,13 @@ def main(argv: list[str] | None = None) -> int:
         if value is not None and not 1 <= value <= 10000:
             parser.error("--" + name.replace("_", "-") + " must be between 1 and 10000")
     try:
+        if args.check_config:
+            from .state import StateStore
+            store = StateStore()
+            if store.blocked:
+                raise ValueError("; ".join(store.blocked.values()))
+            print(f"Valid configuration: {store.config_path}")
+            return 0
         source, editor = OpmlFile.open(args.file)
         if args.check:
             if source.fingerprint is None:
@@ -66,8 +76,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"sprig: terminal error: {error}", file=sys.stderr)
             return 1
     except (OSError, ValueError) as error:
+        from .debug import log_cli_exception
+        log_cli_exception(error, args.file)
         print(f"sprig: {error}", file=sys.stderr)
         return 1
+    except Exception as error:
+        from .debug import log_cli_exception
+        log_cli_exception(error, args.file)
+        raise
     except KeyboardInterrupt:
         return 130
     return 0

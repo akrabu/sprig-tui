@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import curses
+import os
 from pathlib import Path
 import re
 import sys
@@ -9,7 +10,7 @@ import time
 from typing import Callable
 
 from . import richtext
-from .keys import Event, Keyboard
+from .keys import COLLAPSE_KEYS, EXPAND_KEYS, Event, Keyboard
 from .layout import Segment, cell_width, clip, offset_at, printable, width, wrap
 from .model import Editor, Node
 from .opml import OpmlFile
@@ -17,66 +18,6 @@ from .search import label_spans
 from .ui_actions import Actions
 from .history import Location
 from .storage import digest, read_limited
-
-
-HELP = [
-    "Type directly to edit. There is no insert mode.",
-    "Esc                    Toggle File / Node / Navigate menu bar",
-    "Menus                  Left/Right group; Up/Down item; Enter run",
-    "",
-    "Enter                  Split / add a sibling bullet",
-    "Tab / Shift+Tab        Indent / outdent the whole branch",
-    "Alt+. / Alt+,          Zoom in / out (also F7 / F8)",
-    "Alt+Left / Alt+Right   Back / forward (also Alt+B / Alt+F)",
-    "F12                    Return to Home",
-    "Ctrl+Up / Ctrl+Down    Collapse / expand a branch",
-    "Ctrl+Space / F9        Toggle collapse",
-    "Alt+Shift+Up / Down    Move a branch among its siblings",
-    "Alt+Up / Alt+Down      Move a branch (alternative)",
-    "",
-    "Shift+Enter / F6       Edit note / return to bullet",
-    "Enter in a note        Insert a line break; F6 returns to bullet",
-    "Ctrl+Enter / F5        Complete / uncomplete",
-    "Ctrl+O                 Show / hide completed branches",
-    "Ctrl+D / Alt+Shift+D   Duplicate the whole branch",
-    "Ctrl+Alt+M / C         Move to / copy to a destination picker",
-    "F10                    Confirm deletion; backup in trash.opml",
-    "Ctrl+Alt+Up / Down     Collapse / expand all below this node",
-    "Alt+S / F11            Star current node / list starred nodes",
-    "Ctrl+T                 Hashtags and mentions; select to filter",
-    "Typing # / @           Autocomplete labels; Tab/Enter accepts",
-    "Backspace at start     Merge with previous sibling / outdent",
-    "",
-    "Arrows / Home / End    Move through wrapped text and notes",
-    "Ctrl+Left / Right      Move by word",
-    "Ctrl+Home / End        First / last visible item",
-    "Shift+Left / Right     Select text (Shift+Home / End too)",
-    "Ctrl+A                 Select all text in this bullet or note",
-    "Ctrl+C / X / V         Copy / cut / paste (internal clipboard)",
-    "                       Without text selected, copy/cut the branch",
-    "Ctrl+Shift+V           Paste from your terminal's clipboard",
-    "                       Indented pasted lines become nested bullets",
-    "Ctrl+B / Alt+I / Ctrl+U Bold / italic / underline selected text",
-    "Ctrl+Backspace         Delete previous word (also Alt+Backspace)",
-    "",
-    "Ctrl+F / Ctrl+K        Fuzzy search; Tab changes scope",
-    "Search scopes          Current branch / Whole file / Global",
-    "Ctrl+Z / Ctrl+Y        Undo / redo",
-    "Ctrl+S / F2            Save",
-    "F3                     Open or create an OPML file",
-    "Ctrl+W                 Close file (offers to save unsaved edits)",
-    "F4                     Save as",
-    "File menu              Import OPML; export TXT or Markdown",
-    "Navigate menu          Trash browser and Restore; clear filters",
-    "File menu              Recovery, snapshots, and backup settings",
-    "Ctrl+Q                 Quit (saves when Save on exit is enabled)",
-    "F1 / Ctrl+/            Help",
-    "",
-    "Click a bullet to zoom; click its triangle to fold.",
-    "Click text to edit; click a breadcrumb to zoom out.",
-    "Function keys work when a terminal cannot distinguish modifiers.",
-    "Use Up / Down / Page Up / Page Down to scroll this help. Esc closes.",
-]
 
 
 @dataclass
@@ -161,7 +102,7 @@ class App(Actions):
             pass
         # Terminals which support Kitty report Ctrl/Shift+Enter distinctly.
         # Other terminals can use the function-key equivalents.
-        sys.stdout.write("\x1b[?2004h\x1b[>1u")
+        sys.stdout.write("\x1b[?2004h\x1b[>4;1m\x1b[>1u")
         sys.stdout.flush()
 
     def color(self, index: int) -> int:
@@ -182,6 +123,8 @@ class App(Actions):
     def status(self, message: str, error: bool = False) -> None:
         self.message, self.message_error = message, error
         self.message_until = time.monotonic() + (15 if error else 4)
+        if error and getattr(self, "debug", None) is not None:
+            self.debug.event("status.error")
 
     def selection(self) -> tuple[int, int] | None:
         e = self.editor
@@ -404,8 +347,7 @@ class App(Actions):
             self.put(height - 2, 2, self.message, self.color(4) if self.message_error else self.color(2))
         else:
             self.put(height - 2, 2, detail, curses.A_DIM)
-        self.put(height - 1, 2,
-                 "Esc menu  Enter new  Tab indent  Alt+. / Alt+, zoom  ^F find  ^S save  ^Q quit", curses.A_DIM)
+        self.put(height - 1, 2, self.keymap.footer(), curses.A_DIM)
         row = self.rows[current] if self.rows else None
         cursor = None
         if row:
@@ -450,8 +392,9 @@ class App(Actions):
 
     def draw_help(self, height: int, columns: int) -> None:
         y, x, h, w = self.panel(height, columns, "Keyboard shortcuts", 48)
-        self.help_scroll = max(0, min(self.help_scroll, len(HELP) - (h - 2)))
-        for index, line in enumerate(HELP[self.help_scroll:self.help_scroll + h - 2], 1):
+        lines = self.keymap.help_lines()
+        self.help_scroll = max(0, min(self.help_scroll, len(lines) - (h - 2)))
+        for index, line in enumerate(lines[self.help_scroll:self.help_scroll + h - 2], 1):
             self.put(y + index, x + 2, line, limit=w - 4)
 
     def draw_prompt(self, height: int, columns: int) -> tuple[int, int] | None:
@@ -608,6 +551,7 @@ class App(Actions):
         try:
             self.source.save(self.editor, path, overwrite=overwrite, expected=expected)
         except (OSError, ValueError) as error:
+            self.debug.exception("save", error)
             self.autosave_paused = True
             self.status(f"Save failed: {error}", True)
             return False
@@ -737,12 +681,36 @@ class App(Actions):
         self.clear_selection()
 
     def handle(self, event: Event) -> None:
+        started = time.monotonic()
+        if self.debug.path is not None:
+            safe_input = "[input redacted]" if event.key in ("text", "paste") else self.keyboard.last_sequence
+            if not self.debug.event("input", key=event.key, sequence=safe_input, command=self.keymap.command(event),
+                                    field=self.editor.field, has_children=bool(self.editor.selected.children),
+                                    filtered=bool(self.editor.filter_labels), menu=self.menu_open,
+                                    picker=bool(self.picker), prompt=bool(self.prompt)):
+                self.status("Debug logging stopped: " + self.debug.failure, True)
+        command = self.keymap.command(event)
+        if command == "quit":
+            event = Event("ctrl+q")
+        elif not (self.prompt or self.picker or self.help_open or self.menu_open):
+            event = self.keymap.translate(event)
+        elif event.key == "ctrl+q":
+            event = Event("unbound")
+        elif self.help_open and command == "help":
+            event = Event("f1")
+        elif self.menu_open and command in {"save", "save_as", "open", "close", "search", "stars", "labels",
+                                           "star", "delete", "help", "collapse", "expand", "toggle_fold"}:
+            event = self.keymap.translate(event)
         track = not self.preview and (event.key in ("f7", "f8", "f12", "alt+.", "alt+,", "mouse")
                                      or (event.key == "enter" and (self.picker is not None or self.menu_open)))
         before = Location.capture(self) if track else None
         version = id(self.editor), self.editor.revision
         self._navigated_history = False
         self._handle_event(event)
+        if self.debug.path is not None:
+            if not self.debug.event("input.done", key=event.key, revision=self.editor.revision,
+                                    collapsed=len(self.editor.collapsed), elapsed_ms=round((time.monotonic() - started) * 1000, 2)):
+                self.status("Debug logging stopped: " + self.debug.failure, True)
         if (before and not self._navigated_history
                 and ((id(self.editor), self.editor.revision) == version or self.source.path != before.path)):
             self.history.record(before, Location.capture(self))
@@ -771,7 +739,7 @@ class App(Actions):
                 self.help_open = False
             elif key in ("up", "down", "pageup", "pagedown", "home", "end"):
                 step = {"up": -1, "down": 1, "pageup": -12, "pagedown": 12,
-                        "home": -len(HELP), "end": len(HELP)}[key]
+                        "home": -len(self.keymap.help_lines()), "end": len(self.keymap.help_lines())}[key]
                 self.help_scroll += step
             return
         if self.prompt:
@@ -849,9 +817,8 @@ class App(Actions):
         elif key == "f12":
             e.home()
             self.clear_selection()
-        elif key in ("ctrl+up", "ctrl+down", "ctrl+space", "f9"):
-            e.toggle_fold(False if key == "ctrl+up" else True if key == "ctrl+down" else None)
-            self.clear_selection()
+        elif key in COLLAPSE_KEYS | EXPAND_KEYS | {"ctrl+space", "f9"}:
+            self.fold(False if key in COLLAPSE_KEYS else True if key in EXPAND_KEYS else None)
         elif key in ("alt+up", "alt+shift+up", "ctrl+shift+up", "alt+down", "alt+shift+down", "ctrl+shift+down"):
             self.change(lambda: e.move(-1 if key.endswith("up") else 1))
         elif key in ("shift+enter", "f6"):
@@ -894,6 +861,9 @@ class App(Actions):
     def run(self) -> None:
         try:
             self.setup()
+            self.debug.event("session.start", python=sys.version.split()[0], platform=sys.platform,
+                             term=os.environ.get("TERM"), terminal_program=os.environ.get("TERM_PROGRAM"),
+                             size=list(self.screen.getmaxyx()), bindings=len(self.keymap.commands))
             self.offer_recovery()
             self.draw()
             while self.running:
@@ -904,9 +874,13 @@ class App(Actions):
                 redraw = self.storage_tick() or redraw
                 if redraw and self.running:
                     self.draw()
+        except BaseException as error:
+            self.debug.exception("editor.run", error)
+            raise
         finally:
             self.checkpoint()
             self.persist_view()
             self.recovery.close()
-            sys.stdout.write("\x1b[<u\x1b[?2004l")
+            self.debug.event("session.end", unsaved=self.editor.dirty, discarded=self.exit_discarded)
+            sys.stdout.write("\x1b[<u\x1b[>4m\x1b[?2004l")
             sys.stdout.flush()

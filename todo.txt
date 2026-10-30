@@ -2,3 +2,28 @@
 2026-10-30 Add a file browser in a left pane +sprig-tui @ideas
 2026-10-30 Add top tabs for open OPML documents +sprig-tui @ideas
 2026-10-30 Add a bottom hashtag bar for quick filtering +sprig-tui @ideas
+x 2026-10-30 2026-10-30 Name the app Sprig and publish sprig-tui as a public MIT repository +sprig-tui @release
+x 2026-10-30 2026-10-30 Build direct bullet editing with unlimited nesting, indenting, outdenting, and zoom +sprig-tui @features
+x 2026-10-30 2026-10-30 Preserve Workflowy OPML notes, formatting, completion, unknown attributes, and XML metadata +sprig-tui @compatibility
+x 2026-10-30 2026-10-30 Open, create, close, and switch OPML documents with Save as and unsaved-change handling +sprig-tui @files
+x 2026-10-30 2026-10-30 Export whole documents, zooms, and branches to Workflowy-style TXT and Markdown +sprig-tui @files
+x 2026-10-30 2026-10-30 Preview OPML imports and insert whole files or subtrees after the selection, replacing only empty leaves +sprig-tui @files
+x 2026-10-30 2026-10-30 Add Esc-accessed File, Node, and Navigate menus with double borders and horizontal separators +sprig-tui @interface
+x 2026-10-30 2026-10-30 Star nodes and browse bookmarks using central metadata outside OPML +sprig-tui @features
+x 2026-10-30 2026-10-30 Add fuzzy title and note search with remembered Current branch, Whole file, and Global scopes +sprig-tui @search
+x 2026-10-30 2026-10-30 Color hashtags and mentions and support label autocomplete and combined filters +sprig-tui @search
+x 2026-10-30 2026-10-30 Collapse and expand current nodes or descendants with Ctrl+comma, Ctrl+period, F9, and menus +sprig-tui @navigation
+x 2026-10-30 2026-10-30 Confirm subtree deletion and cutting, preserve trash.opml backups, and restore branches in app +sprig-tui @recovery
+x 2026-10-30 2026-10-30 Duplicate complete subtrees and support text and branch clipboard operations +sprig-tui @editing
+x 2026-10-30 2026-10-30 Add fuzzy Move to and Copy to destination pickers with subtree safeguards +sprig-tui @editing
+x 2026-10-30 2026-10-30 Add browser-style back and forward navigation across zooms and documents +sprig-tui @navigation
+x 2026-10-30 2026-10-30 Support Unicode, wrapped text, inline notes, completion, formatting, undo, and redo +sprig-tui @editing
+x 2026-10-30 2026-10-30 Add checksummed crash checkpoints, session locks, and in-app recovery +sprig-tui @recovery
+x 2026-10-30 2026-10-30 Add plain OPML autosave snapshots every minute with configurable paths, interval, and retention +sprig-tui @backups
+x 2026-10-30 2026-10-30 Use built-in gzip for rotating .opml.gz backups on manual and exit saves with configurable paths and checksums +sprig-tui @backups
+x 2026-10-30 2026-10-30 Generate config.toml for settings, paths, and key mappings with safe reload and legacy migration +sprig-tui @configuration
+x 2026-10-30 2026-10-30 Add debug logging disabled by default with configurable filename, redacted input, private permissions, and rotation +sprig-tui @diagnostics
+x 2026-10-30 2026-10-30 Protect saves with atomic replacement, locks, external-change detection, and rollback on failed edits +sprig-tui @integrity
+x 2026-10-30 2026-10-30 Review full-account OPML edge cases and fix data-safety findings while preserving private originals +sprig-tui @review
+x 2026-10-30 2026-10-30 Add fictional export examples, complete source packaging, and Linux and macOS CI +sprig-tui @testing
+x 2026-10-30 2026-10-30 Pass 124 tests including real terminal sessions and failure injection using only the standard library +sprig-tui @testing

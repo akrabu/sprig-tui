@@ -77,7 +77,7 @@ class StorageTests(unittest.TestCase):
         app.set_storage_preference("backup_count", "3")
         app.insert_text("Custom ")
         self.assertTrue(app.save())
-        self.assertTrue(list((self.directory / "archive").rglob("*.opml.br")))
+        self.assertTrue(list((self.directory / "archive").rglob("*.opml.gz")))
         self.assertEqual(app.autosaves().directory.parent, self.directory / ".local-snapshots")
         settings = StateStore().settings
         self.assertEqual(settings["autosave_interval"], 120)
@@ -98,11 +98,11 @@ class StorageTests(unittest.TestCase):
         finally:
             os.chdir(previous)
 
-    def test_brotli_rotation_checksums_collision_and_distinct_sources(self):
+    def test_gzip_rotation_checksums_collision_and_distinct_sources(self):
         manager = Backups(self.path, 2)
         paths = [manager.create(f"version {i}".encode()) for i in range(4)]
         self.assertEqual(len(set(paths)), 4)
-        self.assertRegex(paths[0].name, r"^notes_\d{4}-\d{2}-\d{2}_\d{6}\.opml\.br$")
+        self.assertRegex(paths[0].name, r"^notes_\d{4}-\d{2}-\d{2}_\d{6}\.opml\.gz$")
         self.assertEqual(manager.create(b"version 3"), paths[-1])
         manager.prune()
         self.assertEqual(manager.paths(), paths[-2:])
@@ -140,7 +140,7 @@ class StorageTests(unittest.TestCase):
         app = self.app()
         original = self.path.read_bytes()
         app.insert_text("Pending ")
-        with patch("sprig.backups.codec", side_effect=OSError("compression unavailable")):
+        with patch("sprig.backups.Backups.create", side_effect=OSError("backup unavailable")):
             self.assertFalse(app.save())
         self.assertTrue(app.editor.dirty)
         self.assertEqual(self.path.read_bytes(), original)
@@ -218,11 +218,11 @@ class StorageTests(unittest.TestCase):
         app = self.app()
         legacy = self.directory / "outliner-tui"
         old = StateStore(legacy)
-        old.settings["search_scope"] = "Global"
-        old.save_settings()
         old.bind(app.source, app.editor)
         app.editor.stars.add(app.editor.selected.uid)
         old.save_view(app.source, app.editor)
+        old.config_path.unlink()
+        (legacy / "settings.json").write_text(json.dumps({"version": 1, "search_scope": "Global"}))
         before = (legacy / "settings.json").read_bytes()
         with patch.dict(os.environ, {"SPRIG_CONFIG_DIR": "", "OUTLINER_CONFIG_DIR": "", "XDG_CONFIG_HOME": str(self.directory)}):
             new = StateStore()
@@ -232,7 +232,7 @@ class StorageTests(unittest.TestCase):
             self.assertTrue(editor.stars)
             new.save_settings()
             new.save_view(source, editor)
-            self.assertTrue((self.directory / "sprig-tui" / "settings.json").exists())
+            self.assertTrue((self.directory / "sprig-tui" / "config.toml").exists())
         self.assertEqual((legacy / "settings.json").read_bytes(), before)
 
     def test_recovery_ignores_live_sessions_and_detects_external_edits(self):

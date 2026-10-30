@@ -1,30 +1,25 @@
-"""Verified Brotli snapshots, with bounded retention and collision-safe names."""
+"""Gzip full backups and plain OPML autosaves, with checksums and retention."""
 
 from datetime import datetime, timedelta
+import gzip
 import hashlib
+import io
 from pathlib import Path
 import re
+import zlib
 
 from .config import config_directory
 from .storage import MAX_DOCUMENT_BYTES, atomic_write, file_lock, read_limited, sync_directory
 
 
-def codec():
-    try:
-        import brotli
-    except ImportError as error:
-        raise OSError("Brotli is required for backups. Install Sprig with 'pip install -e .'.") from error
-    return brotli
-
-
 class Backups:
     def __init__(self, source: Path, keep: int = 20, directory: str | Path | None = None,
-                 *, compressed: bool = True) -> None:
+                 *, autosave: bool = False) -> None:
         self.source = source.resolve()
         self.keep = max(1, keep)
-        self.compressed = compressed
-        self.extension = ".opml.br" if compressed else ".opml"
-        base = Path(directory).expanduser() if directory else config_directory() / ("backup" if compressed else "autosave")
+        self.autosave = autosave
+        self.extension = ".opml" if autosave else ".opml.gz"
+        base = Path(directory).expanduser() if directory else config_directory() / ("autosave" if autosave else "backup")
         if not base.is_absolute():
             base = self.source.parent / base
         key = hashlib.sha256(str(self.source).encode()).hexdigest()[:16]
@@ -33,27 +28,21 @@ class Backups:
     def create(self, previous: bytes) -> Path:
         if len(previous) > MAX_DOCUMENT_BYTES:
             raise ValueError("Snapshot exceeds 64 MiB")
-        compressed = previous
-        if self.compressed:
-            brotli = codec()
-            try:
-                compressed = brotli.compress(previous, mode=brotli.MODE_TEXT, quality=4)
-                if brotli.decompress(compressed) != previous:
-                    raise ValueError("Brotli round-trip verification failed")
-            except (brotli.error, ValueError) as error:
-                raise OSError(f"Backup compression failed: {error}") from error
+        content = previous if self.autosave else gzip.compress(previous, compresslevel=6, mtime=0)
+        if not self.autosave and gzip.decompress(content) != previous:
+            raise OSError("Backup compression verification failed")
         self.directory.mkdir(parents=True, mode=0o700, exist_ok=True)
         with file_lock(self.directory / "catalog"):
-            return self._write(compressed)
+            return self._write(content)
 
-    def _write(self, compressed: bytes) -> Path:
+    def _write(self, content: bytes) -> Path:
         paths = self.paths()
         if paths:
             latest = paths[-1]
             try:
                 checksum = read_limited(latest.with_name(latest.name + ".sha256"), 4096).decode("ascii").split()
-                if (checksum and checksum[0] == hashlib.sha256(compressed).hexdigest()
-                        and read_limited(latest) == compressed):
+                if (checksum and checksum[0] == hashlib.sha256(content).hexdigest()
+                        and read_limited(latest) == content):
                     return latest
             except (OSError, ValueError):
                 pass
@@ -70,8 +59,10 @@ class Backups:
             if not path.exists() and not path.with_name(name + ".sha256").exists():
                 break
             stamp += timedelta(seconds=1)
-        atomic_write(path, compressed)
-        checksum = hashlib.sha256(compressed).hexdigest() + "  " + name + "\n"
+        atomic_write(path, content)
+        if read_limited(path) != content:
+            raise OSError("Backup verification failed; original file was not replaced")
+        checksum = hashlib.sha256(content).hexdigest() + "  " + name + "\n"
         atomic_write(path.with_name(name + ".sha256"), checksum.encode())
         return path
 
@@ -100,28 +91,19 @@ class Backups:
 
     @staticmethod
     def read(path: Path) -> bytes:
+        if path.suffix.lower() not in (".opml", ".gz"):
+            raise ValueError("Choose an .opml or .opml.gz snapshot. Older backups have been preserved.")
         data = read_limited(path)
         fields = read_limited(path.with_name(path.name + ".sha256"), 4096).decode("ascii").split()
         if not fields or fields[0] != hashlib.sha256(data).hexdigest():
             raise ValueError("Backup checksum mismatch")
-        if path.suffix != ".br":
-            return data
-        brotli = codec()
-        decoder = brotli.Decompressor()
-        output = bytearray()
-        try:
-            for offset in range(0, len(data), 4096):
-                # Bound output even when given a corrupt or hostile stream.
-                pending = data[offset:offset + 4096]
-                while True:
-                    output.extend(decoder.process(pending, output_buffer_limit=MAX_DOCUMENT_BYTES - len(output) + 1))
-                    if len(output) > MAX_DOCUMENT_BYTES:
-                        raise ValueError("Decompressed backup exceeds 64 MiB")
-                    if decoder.can_accept_more_data():
-                        break
-                    pending = b""
-            if not decoder.is_finished():
-                raise ValueError("Truncated Brotli backup")
-        except brotli.error as error:
-            raise ValueError(f"Invalid Brotli backup: {error}") from error
-        return bytes(output)
+        if path.suffix.lower() == ".gz":
+            try:
+                with gzip.GzipFile(fileobj=io.BytesIO(data)) as stream:
+                    content = stream.read(MAX_DOCUMENT_BYTES + 1)
+                if len(content) > MAX_DOCUMENT_BYTES:
+                    raise ValueError("Decompressed backup exceeds 64 MiB")
+                return content
+            except (OSError, EOFError, zlib.error) as error:
+                raise ValueError(f"Invalid gzip backup: {error}") from error
+        return data

@@ -9,27 +9,22 @@ from .history import History, Location
 from .opml import OpmlFile
 from .recovery import Recovery
 from .storage import digest, read_limited
+from .keymap import KeyMap
+from .debug import DebugLog
 
 
 class StorageActions:
     def init_storage(self, options: dict) -> None:
-        settings = self.store.settings
-        self.autosave = options.get("autosave")
-        if self.autosave is None:
-            self.autosave = settings.get("autosave_enabled", True)
-        self.autosave_delay = options.get("autosave_interval") or settings.get("autosave_interval", 60.0)
-        self.save_on_exit = options.get("save_on_exit")
-        if self.save_on_exit is None:
-            self.save_on_exit = settings.get("save_on_exit", True)
-        self.storage_overrides = {key: value for key, value in options.items()
-                                  if value is not None and key not in ("autosave", "autosave_interval", "save_on_exit")}
+        self.storage_overrides = {"autosave_enabled" if key == "autosave" else key: value
+                                  for key, value in options.items() if value is not None}
         self.history = History()
         self.recovery = Recovery(self.store.directory)
         self.recovered = False
         self.exit_discarded = self._discarding = False
         self.last_checkpoint = self.last_autosave = time.monotonic()
         self._autosave_key = None
-        self.configure_storage()
+        self.debug = DebugLog()
+        self.apply_preferences()
 
     def preference(self, key, default):
         return self.storage_overrides.get(key, self.store.settings.get(key, default))
@@ -39,9 +34,34 @@ class StorageActions:
         self.source.backup_count = self.preference("backup_count", 20)
         self.source.backups_enabled = self.preference("backups_enabled", True)
 
+    def apply_preferences(self) -> bool:
+        self.keymap = KeyMap(self.store.settings.get("keymap", {}))
+        self.autosave = self.preference("autosave_enabled", True)
+        self.autosave_delay = self.preference("autosave_interval", 60.0)
+        self.save_on_exit = self.preference("save_on_exit", True)
+        self.configure_storage()
+        if not self.debug.configure(self.preference("debug_enabled", False),
+                                    self.preference("debug_path", str(self.store.directory / "debug.log")),
+                                    self.store.directory, protected=(self.source.path, self.store.config_path,
+                                                                   self.store.directory / "settings.json")):
+            self.status("Debug logging could not start: " + self.debug.failure, True)
+            return False
+        return True
+
+    def reload_config(self) -> None:
+        previous = self.store.settings
+        if not self.store.reload_settings():
+            self.store.settings = previous
+            self.status("Config reload failed: " + self.store.blocked.get(self.store.config_path, "invalid config"), True)
+            return
+        self.scope = self.store.settings.get("search_scope", "Whole file")
+        self._autosave_key = None
+        if self.apply_preferences():
+            self.status("Reloaded config.toml and key bindings")
+
     def autosaves(self):
         return Backups(self.source.path, self.preference("autosave_count", 20),
-                       self.preference("autosave_directory", self.store.directory / "autosave"), compressed=False)
+                       self.preference("autosave_directory", self.store.directory / "autosave"), autosave=True)
 
     def checkpoint(self) -> None:
         if self.closed or not self.editor.dirty or self.exit_discarded:
@@ -49,6 +69,7 @@ class StorageActions:
         try:
             self.recovery.write(self.source, self.editor, self.store)
         except (OSError, ValueError) as error:
+            self.debug.exception("checkpoint", error)
             self.status(f"Crash recovery checkpoint failed: {error}", True)
         self.last_checkpoint = time.monotonic()
 
@@ -74,6 +95,7 @@ class StorageActions:
             snapshots.create(self.source.encode(self.editor))
             snapshots.prune()
         except (OSError, ValueError) as error:
+            self.debug.exception("autosave", error)
             self.status(f"Autosave snapshot failed: {error}", True)
             return True
         self._autosave_key = key
@@ -128,7 +150,7 @@ class StorageActions:
         from .ui_actions import Item
         backups = Backups(self.source.path, self.source.backup_count, self.source.backup_directory)
         items = [Item(path.name, path, label) for label, manager in
-                 (("Full backup · Brotli", backups), ("Autosave · OPML", self.autosaves()))
+                 (("Full backup · gzip", backups), ("Autosave · OPML", self.autosaves()))
                  for path in reversed(manager.paths())]
         def choose(item):
             self.ask("Restore document snapshot?", "[y] restore buffer · [n] cancel",
@@ -205,15 +227,10 @@ class StorageActions:
             return
         self.store.settings[key] = value
         self.storage_overrides.pop(key, None)
-        if key == "autosave_enabled":
-            self.autosave = value
-        elif key == "autosave_interval":
-            self.autosave_delay = value
-        elif key == "save_on_exit":
-            self.save_on_exit = value
         self._autosave_key = None
-        self.configure_storage()
-        if self.settings_changed():
+        applied = self.apply_preferences()
+        saved = self.settings_changed()
+        if applied and saved:
             self.status("Preference updated")
 
     def navigate_history(self, forward=False) -> None:

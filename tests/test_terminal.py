@@ -1,6 +1,7 @@
 """Exercise the actual curses app in a pseudo-terminal, not a mocked screen."""
 
 import fcntl
+import gc
 import os
 from pathlib import Path
 import select
@@ -12,12 +13,14 @@ import tempfile
 import termios
 import time
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import xml.etree.ElementTree as ET
 
 from sprig.model import Editor, Node
 from tests.fixtures import EXAMPLES, full_bytes
 from sprig.opml import OpmlFile
+from sprig.preferences import encode
+from sprig.state import StateStore
 
 
 PROJECT = Path(__file__).resolve().parents[1]
@@ -25,6 +28,9 @@ PROJECT = Path(__file__).resolve().parents[1]
 
 class Terminal:
     def __init__(self, path, *options, config_directory=None):
+        # Parent/child links form cycles. Release old fixture trees before
+        # launching another interpreter on machines with little free memory.
+        gc.collect()
         self.master, slave = os.openpty()
         self.output = bytearray()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 90, 0, 0))
@@ -34,7 +40,7 @@ class Terminal:
         environment["SPRIG_CONFIG_DIR"] = str(config_directory or Path(path).parent / ".sprig-test-config")
         try:
             self.process = subprocess.Popen(
-                [sys.executable, "-B", str(PROJECT / "sprig.py"), *options, str(path)],
+                [sys.executable, *(["-S"] if sys.flags.no_site else []), "-B", str(PROJECT / "sprig.py"), *options, str(path)],
                 stdin=slave, stdout=slave, stderr=slave, cwd=PROJECT, env=environment,
             )
         finally:
@@ -69,6 +75,9 @@ class Terminal:
                 if predicate():
                     return
                 break
+            # A closed PTY is immediately readable forever. Yield while the
+            # child finishes interpreter shutdown instead of polling at full CPU.
+            time.sleep(0.005)
         if predicate():
             return
         raise AssertionError("Terminal condition timed out:\n" + self.output[-6000:].decode("utf-8", "replace"))
@@ -84,7 +93,7 @@ class Terminal:
 
     def finish(self):
         self.send(b"\x11")  # Ctrl+Q
-        self.wait_for(lambda: self.process.poll() is not None)
+        self.wait_for(lambda: self.process.poll() is not None, timeout=45)
         self.drain(0.02)
         if self.process.returncode != 0 or b"Traceback" in self.output:
             raise AssertionError(self.output[-6000:].decode("utf-8", "replace"))
@@ -116,6 +125,9 @@ class TerminalTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.path = Path(self.temporary.name).resolve() / "outline.opml"
+        environment = patch.dict(os.environ, {"SPRIG_CONFIG_DIR": str(self.path.parent / ".sprig-test-config")})
+        environment.start()
+        self.addCleanup(environment.stop)
 
     def terminal(self, *options, path=None):
         terminal = Terminal(self.path if path is None else path, *options,
@@ -175,7 +187,7 @@ class TerminalTests(unittest.TestCase):
         self.assertEqual(snapshot.stat().st_mtime_ns, mtime)
         _, e = OpmlFile.open(self.path)
         self.assertEqual(e.selected.text, "日本語 🌱 café")
-        self.assertTrue(any((snapshots.parent / "backup").rglob("*.opml.br")))
+        self.assertTrue(any((snapshots.parent / "backup").rglob("*.opml.gz")))
 
     def test_killed_process_can_restore_unsaved_buffer_in_app(self):
         t = self.terminal("--no-save-on-exit")
@@ -190,6 +202,46 @@ class TerminalTests(unittest.TestCase):
         reopened.finish()
         self.assertEqual(OpmlFile.open(self.path)[1].selected.text, "Recovered after crash 🌱")
         self.assertFalse(list(recovery.glob("*.json")))
+
+    def test_punctuation_folding_and_f9_preserve_opml(self):
+        original = b'<opml><body><outline text="Parent"><outline text="Child"/></outline></body></opml>'
+        self.path.write_bytes(original)
+        t = self.terminal("--no-autosave", "--no-save-on-exit")
+        for collapse, expand in (("\x1b[44;5u", "\x1b[46;5u"), ("\x1b[44;6u", "\x1b[46;6u")):
+            mark = len(t.output)
+            t.send(collapse)
+            t.wait_for(lambda: "▸".encode() in t.output[mark:])
+            mark = len(t.output)
+            t.send(expand)
+            t.wait_for(lambda: "▾".encode() in t.output[mark:])
+        t.send("\x1b[20~")  # F9
+        t.finish()
+        source, editor = OpmlFile.open(self.path)
+        store = StateStore(self.path.parent / ".sprig-test-config")
+        store.bind(source, editor)
+        self.assertEqual(len(editor.visible()), 1)
+        self.assertEqual(self.path.read_bytes(), original)
+
+    def test_custom_toml_bindings_and_debug_log_in_real_terminal(self):
+        self.path.write_text('<opml><body><outline text="Parent"><outline text="Child"/></outline></body></opml>')
+        directory = self.path.parent / ".sprig-test-config"
+        store = StateStore(directory)
+        settings = {**store.settings, "keymap": {"collapse": ["alt+c"], "expand": ["alt+e"]},
+                    "debug_enabled": True, "debug_path": "logs/terminal.log"}
+        store.config_path.write_bytes(encode(settings))
+        t = self.terminal("--no-autosave", "--no-save-on-exit")
+        mark = len(t.output)
+        t.send("\x1bc")
+        t.wait_for(lambda: "▸".encode() in t.output[mark:])
+        mark = len(t.output)
+        t.send("\x1be")
+        t.wait_for(lambda: "▾".encode() in t.output[mark:])
+        t.send("PRIVATE_TYPED_TEXT\x13")
+        t.finish()
+        log = (directory / "logs" / "terminal.log").read_text()
+        self.assertIn('"command": "collapse"', log)
+        self.assertIn('"key": "alt+e"', log)
+        self.assertNotIn("PRIVATE_TYPED_TEXT", log)
 
     def test_bracketed_paste_undo_redo_and_resize(self):
         t = self.terminal("--no-autosave", "--no-save-on-exit")
@@ -319,7 +371,11 @@ class TerminalTests(unittest.TestCase):
         t = self.terminal("--no-autosave", "--no-save-on-exit")
         t.send("\x1b[1;7A")  # Collapse all below current node
         t.send("\x06__zzx_no_match_123__\x1b[27u")
+        mark = len(t.output)
         t.send("\x1b[F!\x1a\x13")  # Edit title, undo, save
+        # Wait for the queued edit/undo/save before timing application shutdown.
+        # On slow storage, recovery checkpoints can delay those operations.
+        t.wait_for(lambda: b"Saved outline.opml" in t.output[mark:], timeout=120)
         t.finish()
         before = ET.fromstring(original)
         after = ET.parse(self.path).getroot()

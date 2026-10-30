@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sprig-tui"
-version = "0.3.0"
+version = "0.4.0"
 description = "A Workflowy-inspired terminal outliner with native OPML files"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-dependencies = ["Brotli>=1.2.1,<2"]
+dependencies = []
 
 [project.urls]
 Repository = "https://github.com/akrabu/sprig-tui"

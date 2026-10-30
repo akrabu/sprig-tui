@@ -105,9 +105,14 @@ class Recovery:
         return source, editor, data["view"]
 
     def clear(self) -> None:
+        removed = False
         for path in [self.path, *self.claimed]:
-            path.unlink(missing_ok=True)
-        if self.directory.exists():
+            try:
+                path.unlink()
+                removed = True
+            except FileNotFoundError:
+                pass
+        if removed:
             sync_directory(self.directory)
         for fd in self.claimed.values():
             os.close(fd)

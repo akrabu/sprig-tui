@@ -10,7 +10,7 @@ import time
 from typing import Callable
 
 from .exports import render, save_export
-from .keys import Event
+from .keys import COLLAPSE_KEYS, EXPAND_KEYS, Event
 from .layout import width
 from .model import Editor, Node
 from .opml import OpmlFile
@@ -75,7 +75,7 @@ class Actions(StorageActions):
         if self.scope not in ("Current branch", "Whole file", "Global"):
             self.scope = "Whole file"
         if self.store.blocked:
-            self.status("Some configuration files are unreadable; they will be preserved.", True)
+            self.status("Configuration issue: " + next(iter(self.store.blocked.values())), True)
         elif self.store.unresolved:
             self.status("Some stars could not be matched after external edits; their records are preserved.", True)
 
@@ -171,43 +171,45 @@ class Actions(StorageActions):
         self.ask("New OPML filename", text, create)
 
     def menus(self):
+        key = self.keymap.label
         return [
             ("File", [
                 ("New…", "", self.new_file, True),
-                ("Open…", "F3", lambda: self.file_browser(), True),
-                ("Close", "Ctrl+W", self.close_file, not self.closed),
-                ("Save", "Ctrl+S", self.save, not self.closed),
-                ("Save as…", "F4", lambda: self.ask("Save as", str(self.source.path), self.save_as), not self.closed),
+                ("Open…", key("open"), lambda: self.file_browser(), True),
+                ("Close", key("close"), self.close_file, not self.closed),
+                ("Save", key("save"), self.save, not self.closed),
+                ("Save as…", key("save_as"), lambda: self.ask("Save as", str(self.source.path), self.save_as), not self.closed),
                 ("Import OPML…", "", lambda: self.file_browser(importing=True), not self.closed),
                 ("Export TXT…", "", lambda: self.export_dialog("txt"), not self.closed),
                 ("Export Markdown…", "", lambda: self.export_dialog("md"), not self.closed),
                 ("Autosave and backup settings…", "", self.backup_settings, True),
                 ("Recover unsaved document…", "", self.recovery_browser, True),
                 ("Backups and autosaves…", "", self.snapshot_browser, not self.closed),
-                ("Quit", "Ctrl+Q", lambda: self.handle(Event("ctrl+q")), True),
+                ("Reload config…", "", self.reload_config, True),
+                ("Quit", key("quit"), lambda: self._handle_event(Event("ctrl+q")), True),
             ]),
             ("Node", [
-                ("Star / unstar", "Alt+S", self.toggle_star, not self.closed),
-                ("Duplicate subtree", "Ctrl+D", lambda: self.change(self.editor.duplicate), not self.closed),
-                ("Delete subtree…", "F10", self.request_delete, not self.closed),
-                ("Expand current", "Ctrl+Down", lambda: self.fold(True), not self.closed),
-                ("Collapse current", "Ctrl+Up", lambda: self.fold(False), not self.closed),
-                ("Expand all below", "Ctrl+Alt+Down", lambda: self.fold(True, True), not self.closed),
-                ("Collapse all below", "Ctrl+Alt+Up", lambda: self.fold(False, True), not self.closed),
-                ("Move to…", "Ctrl+Alt+M", self.transfer_picker, not self.closed),
-                ("Copy to…", "Ctrl+Alt+C", lambda: self.transfer_picker(copy=True), not self.closed),
+                ("Star / unstar", key("star"), self.toggle_star, not self.closed),
+                ("Duplicate subtree", key("duplicate"), lambda: self.change(self.editor.duplicate), not self.closed),
+                ("Delete subtree…", key("delete"), self.request_delete, not self.closed),
+                ("Expand current", key("expand"), lambda: self.fold(True), not self.closed),
+                ("Collapse current", key("collapse"), lambda: self.fold(False), not self.closed),
+                ("Expand all below", key("expand_all"), lambda: self.fold(True, True), not self.closed),
+                ("Collapse all below", key("collapse_all"), lambda: self.fold(False, True), not self.closed),
+                ("Move to…", key("move_to"), self.transfer_picker, not self.closed),
+                ("Copy to…", key("copy_to"), lambda: self.transfer_picker(copy=True), not self.closed),
             ]),
             ("Navigate", [
-                ("Search…", "Ctrl+F", self.open_search, not self.closed),
-                ("Starred nodes…", "F11", self.star_browser, True),
-                ("Hashtags and mentions…", "Ctrl+T", self.label_browser, not self.closed),
+                ("Search…", key("search"), self.open_search, not self.closed),
+                ("Starred nodes…", key("stars"), self.star_browser, True),
+                ("Hashtags and mentions…", key("labels"), self.label_browser, not self.closed),
                 ("Clear label filters", "", self.clear_filters, not self.closed),
                 ("Trash / Restore…", "", self.trash_browser, True),
-                ("Show / hide completed", "Ctrl+O", self.toggle_completed, not self.closed),
-                ("Home", "F12", self.editor.home, not self.closed),
-                ("Keyboard help", "F1", lambda: setattr(self, "help_open", True), True),
-                ("Back", "Alt+Left", self.navigate_history, bool(self.history.back)),
-                ("Forward", "Alt+Right", lambda: self.navigate_history(True), bool(self.history.forward)),
+                ("Show / hide completed", key("show_completed"), self.toggle_completed, not self.closed),
+                ("Home", key("home"), self.editor.home, not self.closed),
+                ("Keyboard help", key("help"), lambda: setattr(self, "help_open", True), True),
+                ("Back", key("back"), self.navigate_history, bool(self.history.back)),
+                ("Forward", key("forward"), lambda: self.navigate_history(True), bool(self.history.forward)),
             ]),
         ]
 
@@ -265,7 +267,7 @@ class Actions(StorageActions):
         box_width = min(58, columns - 4)
         group_x = min((2, 10, 18)[self.menu_group], columns - box_width - 2)
         items = menus[self.menu_group][1]
-        boundaries = ((3, 5, 8, 11), (1, 3, 7), (4, 6, 8))[self.menu_group]
+        boundaries = ((3, 5, 8, 12), (1, 3, 7), (4, 6, 8))[self.menu_group]
         visual = []
         for index in range(len(items)):
             if index in boundaries:
@@ -511,7 +513,10 @@ class Actions(StorageActions):
         self.put(y + h - 2, x + 2, p.help, curses.A_DIM, w - 4)
         return y + 2, x + 3 + width(prefix[start:])
 
-    def fold(self, expanded: bool, recursive=False) -> None:
+    def fold(self, expanded: bool | None, recursive=False) -> None:
+        if not self.editor.selected.children:
+            self.status("Select a bullet with children to collapse or expand")
+            return
         self.editor.toggle_fold(expanded, recursive)
         self.clear_selection()
 
@@ -824,8 +829,8 @@ class Actions(StorageActions):
                 self.move_vertical(step)
             elif event.key in ("tab", "ctrl+space", "f9"):
                 self.editor.toggle_fold()
-            elif event.key in ("ctrl+up", "ctrl+down"):
-                self.editor.toggle_fold(event.key == "ctrl+down")
+            elif event.key in COLLAPSE_KEYS | EXPAND_KEYS:
+                self.editor.toggle_fold(event.key in EXPAND_KEYS)
             elif event.key in ("alt+.", "alt+right", "f7"):
                 self.editor.zoom_in()
             elif event.key in ("alt+,", "alt+left", "f8") and self.editor.zoom is not p.entire:
@@ -879,7 +884,8 @@ class Actions(StorageActions):
 
     def handle_actions(self, event: Event) -> bool:
         if self.menu_open:
-            if event.key in ("f1", "f2", "f3", "f4", "f10", "f11", "ctrl+s", "ctrl+f", "ctrl+k", "ctrl+w", "ctrl+t", "alt+s"):
+            if (event.key in ("f1", "f2", "f3", "f4", "f9", "f10", "f11", "ctrl+s", "ctrl+f", "ctrl+k", "ctrl+w", "ctrl+t", "alt+s", "ctrl+space")
+                    or event.key in COLLAPSE_KEYS | EXPAND_KEYS):
                 self.menu_open = False
             else:
                 self.menu_event(event)

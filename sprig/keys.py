@@ -12,6 +12,10 @@ class Event:
     text: str = ""
 
 
+COLLAPSE_KEYS = frozenset(("ctrl+up", "ctrl+,", "ctrl+<", "ctrl+shift+,", "ctrl+shift+<"))
+EXPAND_KEYS = frozenset(("ctrl+down", "ctrl+.", "ctrl+>", "ctrl+shift+.", "ctrl+shift+>"))
+
+
 _CONTROLS = {chr(i): "ctrl+" + chr(96 + i) for i in range(1, 27)}
 _CONTROLS.update({"\x00": "ctrl+space", "\x09": "tab", "\x0a": "enter",
                   "\x0d": "enter", "\x08": "backspace", "\x7f": "backspace",
@@ -32,9 +36,13 @@ def decode_sequence(sequence: str) -> Event:
         return Event("shift+tab")
     if len(sequence) == 2 and sequence[0] == "O":
         return Event({"P": "f1", "Q": "f2", "R": "f3", "S": "f4", **_ARROWS}.get(sequence[1], "unknown"))
-    arrow = re.fullmatch(r"\[(?:1;([0-9]+))?([ABCDHF])", sequence)
+    function = re.fullmatch(r"\[(?:1;([1-8]))?([PQRS])", sequence)
+    if function:
+        return Event(modified("f" + str(ord(function[2]) - ord("P") + 1), int(function[1] or 1)))
+    # Xterm supports both CSI 5 A and CSI 1;5 A, plus private CSI >1;5 A.
+    arrow = re.fullmatch(r"\[>?(?:1;([1-8])|([1-8]))?([ABCDHF])", sequence)
     if arrow:
-        return Event(modified(_ARROWS[arrow[2]], int(arrow[1] or 1)))
+        return Event(modified(_ARROWS[arrow[3]], int(arrow[1] or arrow[2] or 1)))
     tilde = re.fullmatch(r"\[([0-9]+)(?:;([0-9]+))?~", sequence)
     if tilde:
         return Event(modified(_TILDE.get(int(tilde[1]), "unknown"), int(tilde[2] or 1)))
@@ -63,6 +71,7 @@ class Keyboard:
     def __init__(self, screen) -> None:
         self.screen = screen
         self.screen.timeout(100)
+        self.last_sequence = ""
 
     def normalize(self, key) -> Event:
         if isinstance(key, str):
@@ -77,7 +86,7 @@ class Keyboard:
                    curses.KEY_SHOME: "shift+home", curses.KEY_SEND: "shift+end"}
         if key in special:
             return Event(special[key])
-        if curses.KEY_F1 <= key <= curses.KEY_F12:
+        if curses.KEY_F1 <= key <= curses.KEY_F0 + 24:
             return Event("f" + str(key - curses.KEY_F1 + 1))
         name = curses.keyname(key).decode("ascii", "replace")
         extended = re.fullmatch(r"k(UP|DN|LFT|RIT|HOM|END|DC)([2-8])?", name)
@@ -93,25 +102,38 @@ class Keyboard:
         except curses.error:
             return None
         if key != "\x1b":
-            return self.normalize(key)
+            event = self.normalize(key)
+            self.last_sequence = ("[text redacted]" if event.key == "text" else
+                                  repr(key) if isinstance(key, str) else curses.keyname(key).decode("ascii", "replace"))
+            return event
         self.screen.timeout(35)
+        self.last_sequence = repr("\x1b")
         try:
             following = self.screen.get_wch()
             if isinstance(following, int):
-                return Event("alt+" + self.normalize(following).key)
+                event = Event("alt+" + self.normalize(following).key)
+                self.last_sequence = event.key
+                return event
             if following not in ("[", "O"):
                 event = self.normalize(following)
-                return Event("alt+" + (event.text.lower() if event.key == "text" else event.key))
+                event = Event("alt+" + (event.text.lower() if event.key == "text" else event.key))
+                self.last_sequence = event.key
+                return event
             sequence = following
             for _ in range(48):
                 char = self.screen.get_wch()
                 if not isinstance(char, str):
                     return Event("unknown")
                 sequence += char
+                self.last_sequence = repr("\x1b" + sequence)
                 if "@" <= char <= "~":
                     if sequence == "[200~":
+                        self.last_sequence = "[paste redacted]"
                         return self.paste()
-                    return decode_sequence(sequence)
+                    event = decode_sequence(sequence)
+                    if event.key == "text":
+                        self.last_sequence = "[text redacted]"
+                    return event
             return Event("unknown")
         except curses.error:
             return Event("escape")
