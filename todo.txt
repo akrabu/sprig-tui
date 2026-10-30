@@ -1,0 +1,4 @@
+2026-10-30 Add multiple node selection for bulk outline operations +sprig-tui @ideas
+2026-10-30 Add a file browser in a left pane +sprig-tui @ideas
+2026-10-30 Add top tabs for open OPML documents +sprig-tui @ideas
+2026-10-30 Add a bottom hashtag bar for quick filtering +sprig-tui @ideas

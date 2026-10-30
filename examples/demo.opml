@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>demo</title></head><body>
+    <outline text="Observatory #space @Sky" _note="Clear skies">
+      <outline text="Mercury" _note="Synthetic note 2">
+        <outline text="Tasks" _note="Synthetic note 3">
+          <outline text="Check mirror" _note="Clear skies" />
+          <outline text="Polish the lens" _note="Synthetic note 5" />
+          <outline text="Instrument check 2" _note="Synthetic note 6" />
+          </outline>
+        <outline text="Log" _note="Synthetic note 7">
+          <outline text="Session 2026-10-30" _note="Synthetic note 8">
+            <outline text="Observation" _note="Synthetic note 9">
+              <outline text="Look for rings" _note="Synthetic note 10" />
+              </outline>
+            </outline>
+          </outline>
+        </outline>
+      <outline text="Venus" _note="Synthetic note 11">
+        <outline text="Venus survey 1" _note="Synthetic note 12" />
+        <outline text="Venus survey 2" _note="Synthetic note 13" />
+        <outline text="Venus survey 3" _note="Synthetic note 14" />
+        <outline text="Venus survey 4" _note="Synthetic note 15" />
+        <outline text="Venus survey 5" _note="Synthetic note 16" />
+        <outline text="Venus survey 6" _note="Synthetic note 17" />
+        <outline text="Venus survey 7" _note="Synthetic note 18" />
+        <outline text="Venus survey 8" _note="Synthetic note 19" />
+        <outline text="Venus survey 9" _note="Synthetic note 20" />
+        <outline text="Venus survey 10" _note="Synthetic note 21" />
+        <outline text="Venus survey 11" _note="Synthetic note 22" />
+        <outline text="Venus survey 12" _note="Synthetic note 23" />
+        <outline text="Venus survey 13" _note="Synthetic note 24" />
+        <outline text="Venus survey 14" _note="Synthetic note 25" />
+        <outline text="Venus survey 15" _note="Synthetic note 26" />
+        <outline text="Venus survey 16" _note="Synthetic note 27" />
+        <outline text="Venus survey 17" _note="Synthetic note 28" />
+        <outline text="Venus survey 18" _note="Synthetic note 29" />
+        <outline text="Venus survey 19" _note="Synthetic note 30" />
+        <outline text="Venus survey 20" _note="Synthetic note 31" />
+        <outline text="Venus survey 21" _note="Synthetic note 32" />
+        <outline text="Venus survey 22" _note="Synthetic note 33" />
+        <outline text="Venus survey 23" _note="Synthetic note 34" />
+        <outline text="Venus survey 24" _note="Synthetic note 35" />
+        <outline text="Venus survey 25" _note="Synthetic note 36" />
+        <outline text="Venus survey 26" _note="Synthetic note 37" />
+        <outline text="Venus survey 27" _note="Synthetic note 38" />
+        <outline text="Venus survey 28" _note="Synthetic note 39" />
+        <outline text="Venus survey 29" _note="Synthetic note 40" />
+        <outline text="Venus survey 30" _note="Synthetic note 41" />
+        <outline text="Venus survey 31" _note="Synthetic note 42" />
+        <outline text="Venus survey 32" _note="Synthetic note 43" />
+        <outline text="Venus survey 33" _note="Synthetic note 44" />
+        <outline text="Venus survey 34" _note="Synthetic note 45" />
+        <outline text="Venus survey 35" _note="Synthetic note 46" />
+        <outline text="Venus survey 36" _note="Synthetic note 47" />
+        <outline text="Venus survey 37" _note="Synthetic note 48" />
+        <outline text="Venus survey 38" _note="Synthetic note 49" />
+        <outline text="Venus survey 39" _note="Synthetic note 50" />
+        <outline text="Venus survey 40" _note="Synthetic note 51" />
+        <outline text="Venus survey 41" _note="Synthetic note 52" />
+        <outline text="Venus survey 42" _note="Synthetic note 53" />
+        <outline text="Venus survey 43" _note="Synthetic note 54" />
+        <outline text="Venus survey 44" _note="Synthetic note 55" />
+        <outline text="Venus survey 45" _note="Synthetic note 56" />
+        <outline text="Venus survey 46" _note="Synthetic note 57" />
+        <outline text="Venus survey 47" _note="Synthetic note 58" />
+        <outline text="Venus survey 48" _note="Synthetic note 59" />
+        <outline text="Venus survey 49" _note="Synthetic note 60" />
+        <outline text="Venus survey 50" _note="Synthetic note 61" />
+        <outline text="Venus survey 51" _note="Synthetic note 62" />
+        <outline text="Venus survey 52" _note="Synthetic note 63" />
+        <outline text="Venus survey 53" _note="Synthetic note 64" />
+        <outline text="Venus survey 54" _note="Synthetic note 65" />
+        <outline text="Venus survey 55" _note="Synthetic note 66" />
+        <outline text="Venus survey 56" _note="Synthetic note 67" />
+        <outline text="Venus survey 57" _note="Synthetic note 68" />
+        <outline text="Venus survey 58" _note="Synthetic note 69" />
+        <outline text="Venus survey 59" _note="Synthetic note 70" />
+        <outline text="Venus survey 60" _note="Synthetic note 71" />
+        </outline>
+      <outline text="Jupiter" _note="Synthetic note 72">
+        <outline text="Jupiter survey 1" _note="Synthetic note 73" />
+        <outline text="Jupiter survey 2" _note="Synthetic note 74" />
+        <outline text="Jupiter survey 3" _note="Synthetic note 75" />
+        <outline text="Jupiter survey 4" _note="Synthetic note 76" />
+        <outline text="Jupiter survey 5" _note="Synthetic note 77" />
+        <outline text="Jupiter survey 6" _note="Synthetic note 78" />
+        <outline text="Jupiter survey 7" _note="Synthetic note 79" />
+        <outline text="Jupiter survey 8" _note="Synthetic note 80" />
+        <outline text="Jupiter survey 9" _note="Synthetic note 81" />
+        <outline text="Jupiter survey 10" _note="Synthetic note 82" />
+        <outline text="Jupiter survey 11" _note="Synthetic note 83" />
+        <outline text="Jupiter survey 12" _note="Synthetic note 84" />
+        <outline text="Jupiter survey 13" _note="Synthetic note 85" />
+        <outline text="Jupiter survey 14" _note="Synthetic note 86" />
+        <outline text="Jupiter survey 15" _note="Synthetic note 87" />
+        <outline text="Jupiter survey 16" _note="Synthetic note 88" />
+        <outline text="Jupiter survey 17" _note="Synthetic note 89" />
+        <outline text="Jupiter survey 18" _note="Synthetic note 90" />
+        <outline text="Jupiter survey 19" _note="Synthetic note 91" />
+        <outline text="Jupiter survey 20" _note="Synthetic note 92" />
+        <outline text="Jupiter survey 21" _note="Synthetic note 93" />
+        <outline text="Jupiter survey 22" />
+        <outline text="Jupiter survey 23" />
+        <outline text="Jupiter survey 24" />
+        <outline text="Jupiter survey 25" />
+        <outline text="Jupiter survey 26" />
+        <outline text="Jupiter survey 27" />
+        <outline text="Jupiter survey 28" />
+        <outline text="Jupiter survey 29" />
+        <outline text="Jupiter survey 30" />
+        <outline text="Jupiter survey 31" />
+        <outline text="Jupiter survey 32" />
+        <outline text="Jupiter survey 33" />
+        <outline text="Jupiter survey 34" />
+        <outline text="Jupiter survey 35" />
+        <outline text="Jupiter survey 36" />
+        <outline text="Jupiter survey 37" />
+        <outline text="Jupiter survey 38" />
+        <outline text="Jupiter survey 39" />
+        <outline text="Jupiter survey 40" />
+        <outline text="Jupiter survey 41" />
+        <outline text="Jupiter survey 42" />
+        <outline text="Jupiter survey 43" />
+        <outline text="Jupiter survey 44" />
+        <outline text="Jupiter survey 45" />
+        <outline text="Jupiter survey 46" />
+        <outline text="Jupiter survey 47" />
+        <outline text="Jupiter survey 48" />
+        <outline text="Jupiter survey 49" />
+        <outline text="Jupiter survey 50" />
+        <outline text="Jupiter survey 51" />
+        <outline text="Jupiter survey 52" />
+        <outline text="Jupiter survey 53" />
+        <outline text="Jupiter survey 54" />
+        <outline text="Jupiter survey 55" />
+        <outline text="Jupiter survey 56" />
+        <outline text="Jupiter survey 57" />
+        <outline text="Jupiter survey 58" />
+        <outline text="Jupiter survey 59" />
+        <outline text="Jupiter survey 60" />
+        </outline>
+      <outline text="Saturn">
+        <outline text="Saturn survey 1" />
+        <outline text="Saturn survey 2" />
+        <outline text="Saturn survey 3" />
+        <outline text="Saturn survey 4" />
+        <outline text="Saturn survey 5" />
+        <outline text="Saturn survey 6" />
+        <outline text="Saturn survey 7" />
+        <outline text="Saturn survey 8" />
+        <outline text="Saturn survey 9" />
+        <outline text="Saturn survey 10" />
+        <outline text="Saturn survey 11" />
+        <outline text="Saturn survey 12" />
+        <outline text="Saturn survey 13" />
+        <outline text="Saturn survey 14" />
+        <outline text="Saturn survey 15" />
+        <outline text="Saturn survey 16" />
+        <outline text="Saturn survey 17" />
+        <outline text="Saturn survey 18" />
+        <outline text="Saturn survey 19" />
+        <outline text="Saturn survey 20" />
+        <outline text="Saturn survey 21" />
+        <outline text="Saturn survey 22" />
+        <outline text="Saturn survey 23" />
+        <outline text="Saturn survey 24" />
+        <outline text="Saturn survey 25" />
+        <outline text="Saturn survey 26" />
+        <outline text="Saturn survey 27" />
+        <outline text="Saturn survey 28" />
+        <outline text="Saturn survey 29" />
+        <outline text="Saturn survey 30" />
+        <outline text="Saturn survey 31" />
+        <outline text="Saturn survey 32" />
+        <outline text="Saturn survey 33" />
+        <outline text="Saturn survey 34" />
+        <outline text="Saturn survey 35" />
+        <outline text="Saturn survey 36" />
+        <outline text="Saturn survey 37" />
+        <outline text="Saturn survey 38" />
+        <outline text="Saturn survey 39" />
+        <outline text="Saturn survey 40" />
+        <outline text="Saturn survey 41" />
+        <outline text="Saturn survey 42" />
+        <outline text="Saturn survey 43" />
+        <outline text="Saturn survey 44" />
+        <outline text="Saturn survey 45" />
+        <outline text="Saturn survey 46" />
+        <outline text="Saturn survey 47" />
+        <outline text="Saturn survey 48" />
+        <outline text="Saturn survey 49" />
+        <outline text="Saturn survey 50" />
+        <outline text="Saturn survey 51" />
+        <outline text="Saturn survey 52" />
+        <outline text="Saturn survey 53" />
+        <outline text="Saturn survey 54" />
+        <outline text="Saturn survey 55" />
+        <outline text="Saturn survey 56" />
+        <outline text="Saturn survey 57" />
+        <outline text="Saturn survey 58" />
+        <outline text="Saturn survey 59" />
+        <outline text="Saturn survey 60" />
+        </outline>
+      </outline>
+    </body></opml>

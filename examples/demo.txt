@@ -1,0 +1,287 @@
+Observatory #space @Sky
+"Clear skies"
+
+- Mercury
+  "Synthetic note 2"
+  - Tasks
+    "Synthetic note 3"
+    - Check mirror
+      "Clear skies"
+    - Polish the lens
+      "Synthetic note 5"
+    - Instrument check 2
+      "Synthetic note 6"
+  - Log
+    "Synthetic note 7"
+    - Session 2026-10-30
+      "Synthetic note 8"
+      - Observation
+        "Synthetic note 9"
+        - Look for rings
+          "Synthetic note 10"
+- Venus
+  "Synthetic note 11"
+  - Venus survey 1
+    "Synthetic note 12"
+  - Venus survey 2
+    "Synthetic note 13"
+  - Venus survey 3
+    "Synthetic note 14"
+  - Venus survey 4
+    "Synthetic note 15"
+  - Venus survey 5
+    "Synthetic note 16"
+  - Venus survey 6
+    "Synthetic note 17"
+  - Venus survey 7
+    "Synthetic note 18"
+  - Venus survey 8
+    "Synthetic note 19"
+  - Venus survey 9
+    "Synthetic note 20"
+  - Venus survey 10
+    "Synthetic note 21"
+  - Venus survey 11
+    "Synthetic note 22"
+  - Venus survey 12
+    "Synthetic note 23"
+  - Venus survey 13
+    "Synthetic note 24"
+  - Venus survey 14
+    "Synthetic note 25"
+  - Venus survey 15
+    "Synthetic note 26"
+  - Venus survey 16
+    "Synthetic note 27"
+  - Venus survey 17
+    "Synthetic note 28"
+  - Venus survey 18
+    "Synthetic note 29"
+  - Venus survey 19
+    "Synthetic note 30"
+  - Venus survey 20
+    "Synthetic note 31"
+  - Venus survey 21
+    "Synthetic note 32"
+  - Venus survey 22
+    "Synthetic note 33"
+  - Venus survey 23
+    "Synthetic note 34"
+  - Venus survey 24
+    "Synthetic note 35"
+  - Venus survey 25
+    "Synthetic note 36"
+  - Venus survey 26
+    "Synthetic note 37"
+  - Venus survey 27
+    "Synthetic note 38"
+  - Venus survey 28
+    "Synthetic note 39"
+  - Venus survey 29
+    "Synthetic note 40"
+  - Venus survey 30
+    "Synthetic note 41"
+  - Venus survey 31
+    "Synthetic note 42"
+  - Venus survey 32
+    "Synthetic note 43"
+  - Venus survey 33
+    "Synthetic note 44"
+  - Venus survey 34
+    "Synthetic note 45"
+  - Venus survey 35
+    "Synthetic note 46"
+  - Venus survey 36
+    "Synthetic note 47"
+  - Venus survey 37
+    "Synthetic note 48"
+  - Venus survey 38
+    "Synthetic note 49"
+  - Venus survey 39
+    "Synthetic note 50"
+  - Venus survey 40
+    "Synthetic note 51"
+  - Venus survey 41
+    "Synthetic note 52"
+  - Venus survey 42
+    "Synthetic note 53"
+  - Venus survey 43
+    "Synthetic note 54"
+  - Venus survey 44
+    "Synthetic note 55"
+  - Venus survey 45
+    "Synthetic note 56"
+  - Venus survey 46
+    "Synthetic note 57"
+  - Venus survey 47
+    "Synthetic note 58"
+  - Venus survey 48
+    "Synthetic note 59"
+  - Venus survey 49
+    "Synthetic note 60"
+  - Venus survey 50
+    "Synthetic note 61"
+  - Venus survey 51
+    "Synthetic note 62"
+  - Venus survey 52
+    "Synthetic note 63"
+  - Venus survey 53
+    "Synthetic note 64"
+  - Venus survey 54
+    "Synthetic note 65"
+  - Venus survey 55
+    "Synthetic note 66"
+  - Venus survey 56
+    "Synthetic note 67"
+  - Venus survey 57
+    "Synthetic note 68"
+  - Venus survey 58
+    "Synthetic note 69"
+  - Venus survey 59
+    "Synthetic note 70"
+  - Venus survey 60
+    "Synthetic note 71"
+- Jupiter
+  "Synthetic note 72"
+  - Jupiter survey 1
+    "Synthetic note 73"
+  - Jupiter survey 2
+    "Synthetic note 74"
+  - Jupiter survey 3
+    "Synthetic note 75"
+  - Jupiter survey 4
+    "Synthetic note 76"
+  - Jupiter survey 5
+    "Synthetic note 77"
+  - Jupiter survey 6
+    "Synthetic note 78"
+  - Jupiter survey 7
+    "Synthetic note 79"
+  - Jupiter survey 8
+    "Synthetic note 80"
+  - Jupiter survey 9
+    "Synthetic note 81"
+  - Jupiter survey 10
+    "Synthetic note 82"
+  - Jupiter survey 11
+    "Synthetic note 83"
+  - Jupiter survey 12
+    "Synthetic note 84"
+  - Jupiter survey 13
+    "Synthetic note 85"
+  - Jupiter survey 14
+    "Synthetic note 86"
+  - Jupiter survey 15
+    "Synthetic note 87"
+  - Jupiter survey 16
+    "Synthetic note 88"
+  - Jupiter survey 17
+    "Synthetic note 89"
+  - Jupiter survey 18
+    "Synthetic note 90"
+  - Jupiter survey 19
+    "Synthetic note 91"
+  - Jupiter survey 20
+    "Synthetic note 92"
+  - Jupiter survey 21
+    "Synthetic note 93"
+  - Jupiter survey 22
+  - Jupiter survey 23
+  - Jupiter survey 24
+  - Jupiter survey 25
+  - Jupiter survey 26
+  - Jupiter survey 27
+  - Jupiter survey 28
+  - Jupiter survey 29
+  - Jupiter survey 30
+  - Jupiter survey 31
+  - Jupiter survey 32
+  - Jupiter survey 33
+  - Jupiter survey 34
+  - Jupiter survey 35
+  - Jupiter survey 36
+  - Jupiter survey 37
+  - Jupiter survey 38
+  - Jupiter survey 39
+  - Jupiter survey 40
+  - Jupiter survey 41
+  - Jupiter survey 42
+  - Jupiter survey 43
+  - Jupiter survey 44
+  - Jupiter survey 45
+  - Jupiter survey 46
+  - Jupiter survey 47
+  - Jupiter survey 48
+  - Jupiter survey 49
+  - Jupiter survey 50
+  - Jupiter survey 51
+  - Jupiter survey 52
+  - Jupiter survey 53
+  - Jupiter survey 54
+  - Jupiter survey 55
+  - Jupiter survey 56
+  - Jupiter survey 57
+  - Jupiter survey 58
+  - Jupiter survey 59
+  - Jupiter survey 60
+- Saturn
+  - Saturn survey 1
+  - Saturn survey 2
+  - Saturn survey 3
+  - Saturn survey 4
+  - Saturn survey 5
+  - Saturn survey 6
+  - Saturn survey 7
+  - Saturn survey 8
+  - Saturn survey 9
+  - Saturn survey 10
+  - Saturn survey 11
+  - Saturn survey 12
+  - Saturn survey 13
+  - Saturn survey 14
+  - Saturn survey 15
+  - Saturn survey 16
+  - Saturn survey 17
+  - Saturn survey 18
+  - Saturn survey 19
+  - Saturn survey 20
+  - Saturn survey 21
+  - Saturn survey 22
+  - Saturn survey 23
+  - Saturn survey 24
+  - Saturn survey 25
+  - Saturn survey 26
+  - Saturn survey 27
+  - Saturn survey 28
+  - Saturn survey 29
+  - Saturn survey 30
+  - Saturn survey 31
+  - Saturn survey 32
+  - Saturn survey 33
+  - Saturn survey 34
+  - Saturn survey 35
+  - Saturn survey 36
+  - Saturn survey 37
+  - Saturn survey 38
+  - Saturn survey 39
+  - Saturn survey 40
+  - Saturn survey 41
+  - Saturn survey 42
+  - Saturn survey 43
+  - Saturn survey 44
+  - Saturn survey 45
+  - Saturn survey 46
+  - Saturn survey 47
+  - Saturn survey 48
+  - Saturn survey 49
+  - Saturn survey 50
+  - Saturn survey 51
+  - Saturn survey 52
+  - Saturn survey 53
+  - Saturn survey 54
+  - Saturn survey 55
+  - Saturn survey 56
+  - Saturn survey 57
+  - Saturn survey 58
+  - Saturn survey 59
+  - Saturn survey 60
