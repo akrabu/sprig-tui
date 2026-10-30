@@ -28,7 +28,7 @@ class OpmlTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.path = Path(self.temporary.name) / "test.opml"
+        self.path = Path(self.temporary.name).resolve() / "test.opml"
         environment = patch.dict(os.environ, {"SPRIG_CONFIG_DIR": str(self.path.parent / "config")})
         environment.start()
         self.addCleanup(environment.stop)

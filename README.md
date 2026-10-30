@@ -1,7 +1,7 @@
 # Sprig
 
-Sprig is a terminal outliner with Workflowy-style editing, unlimited nesting
-and zoom, fuzzy search, labels, stars, and native OPML files.
+Sprig is a Workflowy-inspired terminal outliner with unlimited nesting and zoom,
+fuzzy search, labels, stars, and native OPML files.
 The Python distribution and GitHub repository are named **sprig-tui**.
 
 ## Install and run

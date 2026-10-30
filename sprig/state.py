@@ -97,7 +97,7 @@ def validate_data(data: dict, *, settings: bool = False) -> None:
 
 class StateStore:
     def __init__(self, directory: Path | None = None) -> None:
-        self.directory = Path(directory or config_directory()).expanduser()
+        self.directory = Path(directory or config_directory()).expanduser().resolve()
         self.legacy = None if directory else legacy_directory()
         self.blocked: dict[Path, str] = {}
         self.fingerprints: dict[Path, str | None] = {}

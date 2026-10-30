@@ -28,7 +28,7 @@ class Backups:
         if not base.is_absolute():
             base = self.source.parent / base
         key = hashlib.sha256(str(self.source).encode()).hexdigest()[:16]
-        self.directory = base / (self.source.name + "-" + key)
+        self.directory = base.resolve() / (self.source.name + "-" + key)
 
     def create(self, previous: bytes) -> Path:
         if len(previous) > MAX_DOCUMENT_BYTES:

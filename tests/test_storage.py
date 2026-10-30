@@ -23,7 +23,7 @@ class StorageTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.directory = Path(temporary.name)
+        self.directory = Path(temporary.name).resolve()
         self.config = self.directory / "config"
         environment = patch.dict(os.environ, {"SPRIG_CONFIG_DIR": str(self.config)})
         environment.start()
@@ -85,6 +85,18 @@ class StorageTests(unittest.TestCase):
         for value in ("nan", "inf", "-1", "oops"):
             app.set_storage_preference("autosave_interval", value)
             self.assertEqual(app.autosave_delay, 120)
+
+    def test_relative_config_directory_is_resolved_from_working_directory(self):
+        previous = Path.cwd()
+        try:
+            os.chdir(self.directory)
+            with patch.dict(os.environ, {"SPRIG_CONFIG_DIR": "portable-config"}):
+                store = StateStore()
+                self.assertEqual(store.directory, self.directory / "portable-config")
+                manager = Backups(self.directory / "somewhere" / "notes.opml")
+                self.assertEqual(manager.directory.parent, self.directory / "portable-config" / "backup")
+        finally:
+            os.chdir(previous)
 
     def test_brotli_rotation_checksums_collision_and_distinct_sources(self):
         manager = Backups(self.path, 2)

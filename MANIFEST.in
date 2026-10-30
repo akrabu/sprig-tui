@@ -1,0 +1,3 @@
+include LICENSE README.md REVIEW.md todo.txt sprig.py
+recursive-include examples *.opml *.txt *.md
+recursive-include tests *.py

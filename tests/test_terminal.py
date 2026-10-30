@@ -12,6 +12,7 @@ import tempfile
 import termios
 import time
 import unittest
+from unittest.mock import Mock
 import xml.etree.ElementTree as ET
 
 from sprig.model import Editor, Node
@@ -65,7 +66,11 @@ class Terminal:
             if predicate():
                 return
             if self.process.poll() is not None:
+                if predicate():
+                    return
                 break
+        if predicate():
+            return
         raise AssertionError("Terminal condition timed out:\n" + self.output[-6000:].decode("utf-8", "replace"))
 
     def send(self, text):
@@ -95,12 +100,22 @@ class Terminal:
         os.close(self.master)
 
 
+class TerminalWaitTests(unittest.TestCase):
+    def test_exit_between_poll_calls_satisfies_wait(self):
+        terminal = object.__new__(Terminal)
+        terminal.output = bytearray()
+        terminal.drain = lambda duration: None
+        terminal.process = Mock()
+        terminal.process.poll.side_effect = [None, 0, 0]
+        terminal.wait_for(lambda: terminal.process.poll() is not None)
+
+
 @unittest.skipUnless(os.name == "posix", "requires a POSIX terminal")
 class TerminalTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.path = Path(self.temporary.name) / "outline.opml"
+        self.path = Path(self.temporary.name).resolve() / "outline.opml"
 
     def terminal(self, *options, path=None):
         terminal = Terminal(self.path if path is None else path, *options,

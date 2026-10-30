@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sprig-tui"
 version = "0.3.0"
-description = "A Workflowy-style terminal outliner with native OPML files"
+description = "A Workflowy-inspired terminal outliner with native OPML files"
 requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"

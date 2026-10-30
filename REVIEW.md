@@ -56,6 +56,12 @@ fixtures were checked locally and are excluded from publication.
 - The public publication snapshot passed 102 tests on CPython 3.11.2 / Linux
   aarch64, with no access to the private exports or working OPML files.
 - Static checks for undefined names and unused bindings passed with Ruff.
+- Hosted checks also cover Python 3.10 and 3.13 on Linux and Python 3.13 on
+  macOS. Test paths use canonical names so macOS's `/var` alias does not disable
+  failure injection. Process-exit waits recheck predicates to handle fast exits
+  between polling calls. Relative configuration roots are resolved consistently.
+- Source distributions include the complete test helpers and fictional examples,
+  with private documents excluded.
 - Unit and integration checks cover tree edits and rollback, deep outlines,
   OPML preservation, XML errors, save conflicts, failed replacement, simulated
   post-rename sync failure, locks, export confirmation races, metadata conflicts,

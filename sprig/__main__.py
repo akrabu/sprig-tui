@@ -10,7 +10,7 @@ from .opml import OpmlFile
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="A Workflowy-style terminal outliner backed by OPML.")
+    parser = argparse.ArgumentParser(description="A Workflowy-inspired terminal outliner backed by OPML.")
     parser.add_argument("file", nargs="?", default="outline.opml", help="OPML file to open or create (default: outline.opml)")
     parser.add_argument("--no-autosave", action="store_true", help="disable automatic OPML recovery snapshots")
     parser.add_argument("--autosave-interval", "--autosave-delay", dest="autosave_interval", type=float, metavar="SECONDS",

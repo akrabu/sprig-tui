@@ -59,7 +59,7 @@ class FeatureTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.directory = Path(self.temporary.name)
+        self.directory = Path(self.temporary.name).resolve()
         self.config = self.directory / "config"
         self.environment = patch.dict(os.environ, {"SPRIG_CONFIG_DIR": str(self.config)})
         self.environment.start()
